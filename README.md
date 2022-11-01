@@ -1,2 +1,2 @@
-# DeepECG
+# ECG NN
 A deep learning algorithm for detection of cardiac arrhythmias using synthetic electrocardiography
