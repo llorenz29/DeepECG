@@ -73,7 +73,7 @@ def ecg_simulate_multichannel(duration=10, length=None, sampling_rate=1000, nois
     - https://github.com/diarmaidocualain/ecg_simulation
 
     """
-    #don't think we need this
+    
     # Seed the random generator for reproducible results
     np.random.seed(random_state)
 
@@ -377,6 +377,7 @@ def simulation(normal_N,abnormal_N, save_params = False):
 
 if __name__ == "__main__":
 
+    #of Normal and Abnormal examples
     normal_N = 3
     abnormal_N = 3
     save_params = False
