@@ -1,5 +1,6 @@
-import numpy as np
+# https://github.com/PierreElias/IntroECG/tree/master/2-Generating%20Synthetic%20ECG%20Data
 
+import numpy as np
 
 ##Sampling Rate and Duration
 sampling_rate = 250 #Hz

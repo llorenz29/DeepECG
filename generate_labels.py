@@ -6,7 +6,6 @@ import pandas as pd
 import parameters as para
 
 
-# -*- coding: utf-8 -*-
 import math
 
 import numpy as np
@@ -73,7 +72,7 @@ def ecg_simulate_multichannel(duration=10, length=None, sampling_rate=1000, nois
     - https://github.com/diarmaidocualain/ecg_simulation
 
     """
-    
+
     # Seed the random generator for reproducible results
     np.random.seed(random_state)
 
@@ -335,6 +334,7 @@ def simulation(normal_N,abnormal_N, save_params = False):
     normal_params = []
     print('Creating normal dataset')
     for i in range(normal_N):
+        print("Normal Iteration: ", i+1)
         ti = np.random.normal(para.mu_t_1, para.sigma_t_1)
         ai = np.random.normal(para.mu_a_1, para.sigma_a_1)
         bi = np.random.normal(para.mu_b_1, para.sigma_b_1)
@@ -350,6 +350,7 @@ def simulation(normal_N,abnormal_N, save_params = False):
     abnormal_params = []
     print('Creating abnormal dataset')
     for i in range(abnormal_N):
+        print("Abnormal Iteration: ", i+1)
         ti = np.random.normal(para.mu_t_2, para.sigma_t_2)
         ai = np.random.normal(para.mu_a_2, para.sigma_a_2)
         bi = np.random.normal(para.mu_b_2, para.sigma_b_2)
@@ -378,8 +379,8 @@ def simulation(normal_N,abnormal_N, save_params = False):
 if __name__ == "__main__":
 
     #of Normal and Abnormal examples
-    normal_N = 3
-    abnormal_N = 3
+    normal_N = 50
+    abnormal_N = 50
     save_params = False
     simulation(normal_N,abnormal_N,save_params)
 
