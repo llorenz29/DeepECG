@@ -5,6 +5,10 @@ import numpy as np
 import pandas as pd
 import parameters as para
 
+#Data compression
+import pickle
+import bz2
+
 
 import math
 
@@ -370,21 +374,34 @@ def simulation(normal_N,abnormal_N, save_params = False):
     data = data[permutation]
     data_params = data_params[permutation]
 
-    np.save('sim_ecg_data', data) # save ECG data
-    np.save('sim_ecg_labels', labels) # save label
-    if (save_params):
-        np.save('sim_ecg_params',data_params) # save parameters for each ecg sample (12,2500)
+
+    #compressing the data
+    o_file = "sim_ecg_data.bz2"
+    out = bz2.BZ2File(o_file,'wb') #overwrite
+    pickle.dump(data,out)
+    out.close()
+
+    o_file = "sim_ecg_labels.bz2"
+    out = bz2.BZ2File(o_file,'wb') #overwrite
+    pickle.dump(labels,out)
+    out.close()
 
 
 if __name__ == "__main__":
 
     #of Normal and Abnormal examples
-    normal_N = 50
-    abnormal_N = 50
+    normal_N = 1
+    abnormal_N = 1
     save_params = False
     simulation(normal_N,abnormal_N,save_params)
 
-    data_shape = np.load('sim_ecg_data.npy').shape
-    print('data shape: ',data_shape)
-    labels = np.load('sim_ecg_labels.npy')
+    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data.bz2",'rb')
+    data = pickle.load(in_file)
+    in_file.close()
+
+    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_labels.bz2",'rb')
+    labels = pickle.load(in_file)
+    in_file.close()
+
+    print("data shape: ", data.shape)
     print(labels)

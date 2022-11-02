@@ -1,6 +1,7 @@
-# https://github.com/PierreElias/IntroECG/tree/master/2-Generating%20Synthetic%20ECG%20Data
+#https://github.com/PierreElias/IntroECG/blob/master/2-Generating%20Synthetic%20ECG%20Data/parameters.py
 
 import numpy as np
+
 
 ##Sampling Rate and Duration
 sampling_rate = 250 #Hz
@@ -54,10 +55,8 @@ min_noise_2 = 0.01
 max_noise_2 = 0.1
 
 #t, a, b
-#plan on changing the S/T amplitude spikes, as well as b, the width of each spike
 mu_t_2 = np.array((-70, -15, 0, 15, 100))
 mu_a_2 = np.array((1.2, -4, 25, -6.5, 0.75))
-# mu_a_2 = np.array((1.2, -4, 25, -6.5, 0.75))
 mu_b_2 = np.array((0.25, 0.1, 0.1, 0.1, 0.4))
 sigma_t_2 = np.ones(5)*3
 sigma_a_2 = np.abs(mu_a_1/5)
