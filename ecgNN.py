@@ -21,59 +21,65 @@ class Model:
 
     Not using a CNN because input is condensed into numpy array
 
+    May get the warning message:
+        'This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use
+        the following CPU instructions in performance-critical operations:  SSE4.1 SSE4.2
+        To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags'
+
+        Which is not an error, just saying can take advantange of other CPU optimizations
+
     Parameters
     ----------
-    train_x : (Type)
+    train_x : numpy.ndarray
         Training ECG data
-    train_y : (Type)
+    train_y : numpy.ndarray
         Training ECG labels
-    test_x : (Type)
+    test_x : numpy.ndarray
         Testing ECG data
-    test_y : (Type)
+    test_y : numpy.ndarray
         Testing ECG labels
 
     Returns
     -------
-    (Type)
+    Sequential
         A NN model
 
     """
 
-    def init(self, train_X, train_y, test_X, test_y):
+    def __init__(self, train_X, train_y, test_X, test_y):
+        #self.compiled = our NN model
         self.compiled = self.compile()
 
-        #if not an np array, convert to np.asarray(train_X)
-        print(type(trainX))
+        #taking 50% of testing for a split of 70 training 15 validation 15 testing
+        self.validation_X = test_X[( (len(test_X)//2) ):]
+        self.test_X = test_X[:( (len(test_X)//2) )]
 
-        #taking 25%
-        self.validation_X = np.asarray(test_X[( (len(test_X)//2) //2):])
-        self.test_X = np.asarray(test_X[:( (len(test_X)//2) //2)])
+        self.validation_y = test_y[( (len(test_y)//2) ):]
+        self.test_y = test_y[:( (len(test_y)//2) )]
 
-        #taking 25%
-        self.validation_y = np.asarray(test_y[( (len(test_y)//2) //2):])
-        self.test_y = np.array(test_y[:( (len(test_y)//2) //2)])
 
 
     def compile(self):
-        """Creates a sequental where every node has exactly one input and output tensor
+        """Creates a fully connected sequental NN model where every node has exactly one input and output tensor
 
         Returns
         -------
-        (Type)
+        Sequential
             Compiled model
         """
-        #Figure out which layers we are looking for in our model
+
+
         model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.Flatten()) #flattens input
-        model.add(tf.keras.layers.Dense(1, activation = tf.nn.relu)) #relu activation
-
-
+        model.add(tf.keras.layers.Flatten(input_shape =(12,2500))) #flattens input of shape (example, 12,2500) for 12 lead, 2500 sample duration
+        model.add(tf.keras.layers.Dense(128,activation = tf.nn.relu)) #regular dense NN layer
         model.add(tf.keras.layers.Dropout(0.5)) #prevent overfitting
+        model.add(tf.keras.layers.Dense(1))
 
-        optimize = tf.keras.optimizers.Adam(learning_rate = 0.001)
+        print(model.output_shape)
 
+        #using Adam optimizer, mse, and metrics
         model.compile(
-        optimizer = optimize,
+        optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001),
         loss = "mean_squared_error", #Seek to change this?
         metrics = [tf.keras.metrics.RootMeanSquaredError(), tf.keras.metrics.MeanAbsoluteError()]
         )
@@ -87,12 +93,12 @@ class Train:
 
     Parameters
     ----------
-    model : (Type)
+    model : Sequential
         A NN model
 
     Returns
     -------
-    compiled_model : (Type)
+    compiled_model : Sequential
         A compiled NN model
 
     """
@@ -130,9 +136,9 @@ class Evaluate:
 
         Parameters:
         -----------
-        compiled_model :
+        compiled_model : keras Model class
             trained model
-        trained_model : (Type)
+        trained_model : keras Model class
             trained model
 
         Returns:
@@ -169,38 +175,39 @@ def get_runtime(func):
 
 
 @get_runtime
-def splitExamples(data,labels):
+def splitExamples(data,labels,split_factor):
     """Splits data and labels into separate training / testing arrays
 
         Parameters:
         -----------
         data : np array
-            Data __
+            ECG waveform data
         labels : np array
-            __
+            labels associated with an example
+        split_factor : float range (0-1)
+            What proportion of examples will be training (0.8 = 80%)
 
         Returns:
         --------
-        train_X : np array
+        train_X : numpy.ndarray
             training examples
-        train_y: np array
-            training examples
-        test_X: np array
-            # TEMP:
-        test_y: np array
-            sd
+        train_y: numpy.ndarray
+            training labels
+        test_X: numpy.ndarray
+            testing examples
+        test_y: numpy.ndarray
+            testing labels
     """
 
-    #going to split 80/20 for now
+    #going to split 70/30 for now (70 train, 15 val, 15 test)
 
-    print(len(data))
+    #splitting training data
+    trainx = data[:int(len(data)*split_factor)]
+    trainy = labels[:int(len(labels)*split_factor)]
 
-    trainx = 0
-    trainy = 0
-
-    testx = 0
-    testy = 0
-
+    #splitting testing data
+    testx = data[int(len(data)*split_factor):]
+    testy = labels[int(len(labels)*split_factor):]
 
     return trainx, trainy, testx, testy
 
@@ -217,14 +224,16 @@ if __name__ == "__main__":
     labels = pickle.load(in_file)
     in_file.close()
 
-    print(data)
-    print(labels)
+    #print(data)
+    #print(labels)
 
 
-    x_train, y_train, x_test, y_test = splitExamples(data,labels)
-    #print(len(x_train))
+    x_train, y_train, x_test, y_test = splitExamples(data,labels, 0.7)
 
-    #compiled_model = Model(x_train, y_train, x_test, y_test)
+
+    compiled_model = Model(x_train, y_train, x_test, y_test)
+
+    compiled_model.compile()
 
     #trained_model = Train(compiled_model)
 

@@ -390,8 +390,8 @@ def simulation(normal_N,abnormal_N, save_params = False):
 if __name__ == "__main__":
 
     #of Normal and Abnormal examples
-    normal_N = 1
-    abnormal_N = 1
+    normal_N = 50
+    abnormal_N = 50
     save_params = False
     simulation(normal_N,abnormal_N,save_params)
 
