@@ -50,6 +50,12 @@ class Model:
         #self.compiled = our NN model
         self.compiled = self.compile()
 
+        self.train_X = train_X
+        self.train_y = train_y
+
+        self.test_X = test_X
+        self.test_y = test_y
+
         #taking 50% of testing for a split of 70 training 15 validation 15 testing
         self.validation_X = test_X[( (len(test_X)//2) ):]
         self.test_X = test_X[:( (len(test_X)//2) )]
@@ -75,13 +81,24 @@ class Model:
         model.add(tf.keras.layers.Dropout(0.5)) #prevent overfitting
         model.add(tf.keras.layers.Dense(1))
 
-        print(model.output_shape)
+        #print(model.output_shape)
 
-        #using Adam optimizer, mse, and metrics
+        """
+        Using Adam optimizer, mse, and AUC
+
+        Using AUC of the ROC for evaluation metrics, which is a quality measure of a binary classifier
+        Looking to maximize AUC, or area under the curve, or the best classifier
+
+        could also explore models that maximize things such as precision/recall, true positives, true negatives, etc
+        """
+
         model.compile(
         optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001),
-        loss = "mean_squared_error", #Seek to change this?
-        metrics = [tf.keras.metrics.RootMeanSquaredError(), tf.keras.metrics.MeanAbsoluteError()]
+        loss = "mean_squared_error",
+        metrics = [
+        #tf.keras.metrics.AUC(),
+        tf.keras.metrics.RootMeanSquaredError()
+        ] #AUC errors atm
         )
 
         return model
@@ -89,57 +106,62 @@ class Model:
 
 class Train:
 
-    """Trains the NN
+    """Trains our fully connected Neural Network
 
-    Parameters
+    Parameters:
     ----------
     model : Sequential
-        A NN model
+        A NN model, compiled as specified by the Model class above
 
-    Returns
+    Returns:
     -------
     compiled_model : Sequential
-        A compiled NN model
+        A trained NN model
 
     """
 
     def __init__(self,model):
         self.model = model
-        self.compiled_model = model.compiled_model
-        self.trained_model = self.train_model(self.compiled_model, self.model)
+        self.compiled = model.compiled
+        self.trained_model = self.train_model(self.compiled, self.model)
 
-    def train_model(self, compiled_model, model):
-        """Trains NN model
+    def train_model(self, compiled, model):
+        """Trains NN model, returns a
 
             Returns compiled model
         """
-        #EarlyStopping??
-        tf.keras.calbacks.EarlyStopping(
+
+        #Stop training when a monitored metric has stopped improving beyond 20 epochs
+
+
+        #training the model on training data
+        #starting with 50 epochs, if still improving performance will increase
+        compiled.fit(
+        model.train_X,
+        model.train_y,
+        epochs = 100,
+        validation_data = (model.validation_X, model.validation_y),
+        callbacks = [
+        tf.keras.callbacks.EarlyStopping(
         monitor = "val_loss",
         mode = "min",
         patience = 20,
         restore_best_weights = True
+        )]
+
         )
 
-        compiled_model.fit(
-        model.train_X,
-        model.train_y,
-        epochs = 100,
-        validation_data = (model.validation_x, model.validation_y),
-        callbacks = [earlystopping])
-
-
-        return compiled_model
+        return compiled
 
 class Evaluate:
-    """Evaluates model performance
+    """Evaluates model performance on our testing data
 
         Parameters:
         -----------
         compiled_model : keras Model class
-            trained model
+            compiled model from Model() class
         trained_model : keras Model class
-            trained model
+            trained model from Train() class
 
         Returns:
         --------
@@ -151,11 +173,11 @@ class Evaluate:
 
     """
 
-    def __init__(self,compiled_model, trained_model):
-        self.compiled_model = compiled_model
+    def __init__(self,compiled, trained_model):
+        self.compiled = compiled
         self.trained_model = trained_model
 
-        self.loss, self.rmse, self.mae = trained_model.evaluate(compiled_model.test_X,compiled_model.test_y)
+        self.loss, self.rmse = trained_model.evaluate(compiled.test_X,compiled.test_y)
 
 
 
@@ -235,7 +257,10 @@ if __name__ == "__main__":
 
     compiled_model.compile()
 
-    #trained_model = Train(compiled_model)
+
+    trained_model = Train(compiled_model)
+
+    print("done training")
 
     #trained_model = trained_model.trained_model
 
