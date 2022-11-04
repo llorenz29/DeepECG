@@ -7,6 +7,9 @@ import os
 import pickle
 import bz2
 
+#timing
+import time
+
 import matplotlib.pyplot as plt
 
 
@@ -148,14 +151,24 @@ class Evaluate:
 
         self.loss, self.rmse, self.mae = trained_model.evaluate(compiled_model.test_X,compiled_model.test_y)
 
-def get_runtime(func):
 
-    def time_func():
-        print()
-        func()
+
+def get_runtime(func):
+    """Decorator to get the various runtimes of different functions
+
+        Runs specified input function and times execution time
+    """
+    def time_func(*args,**kwargs):
+        start = time.time()
+        res = func(*args, **kwargs)
+        end = time.time()
+        print(f"The function {func.__name__} took {end-start} seconds to run")
+        return res
     return time_func
 
 
+
+@get_runtime
 def splitExamples(data,labels):
     """Splits data and labels into separate training / testing arrays
 
@@ -204,9 +217,12 @@ if __name__ == "__main__":
     labels = pickle.load(in_file)
     in_file.close()
 
+    print(data)
+    print(labels)
+
 
     x_train, y_train, x_test, y_test = splitExamples(data,labels)
-    print(len(x_train))
+    #print(len(x_train))
 
     #compiled_model = Model(x_train, y_train, x_test, y_test)
 
