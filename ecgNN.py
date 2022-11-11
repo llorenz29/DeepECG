@@ -47,8 +47,12 @@ class Model:
     """
 
     def __init__(self, train_X, train_y, test_X, test_y):
+
+        #Should we normalize?
         #self.compiled = our NN model
         self.compiled = self.compile()
+
+
 
         self.train_X = train_X
         self.train_y = train_y
@@ -77,14 +81,19 @@ class Model:
 
         model = tf.keras.models.Sequential()
         model.add(tf.keras.layers.Flatten(input_shape =(12,2500))) #flattens input of shape (example, 12,2500) for 12 lead, 2500 sample duration
-        model.add(tf.keras.layers.Dense(128,activation = tf.nn.relu)) #regular dense NN layer
+        model.add(tf.keras.layers.Dense(8,activation = tf.nn.relu)) #regular dense NN layer
+        model.add(tf.keras.layers.Dense(4,activation = tf.nn.relu)) #regular dense NN layer
         model.add(tf.keras.layers.Dropout(0.5)) #prevent overfitting
-        model.add(tf.keras.layers.Dense(1))
+        model.add(tf.keras.layers.Dense(1,activation = tf.nn.relu))
+
+        print(model.summary())
 
         #print(model.output_shape)
 
         """
         Using Adam optimizer, mse, and AUC
+
+        What are we trying to minimize??
 
         Using AUC of the ROC for evaluation metrics, which is a quality measure of a binary classifier
         Looking to maximize AUC, or area under the curve, or the best classifier
@@ -94,10 +103,11 @@ class Model:
 
         model.compile(
         optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001),
-        loss = "mean_squared_error",
+        loss = "binary_crossentropy", #loss metric
         metrics = [
+        tf.keras.metrics.Accuracy()
         #tf.keras.metrics.AUC(),
-        tf.keras.metrics.RootMeanSquaredError()
+        #tf.keras.metrics.RootMeanSquaredError()
         ] #AUC errors atm
         )
 
@@ -140,14 +150,14 @@ class Train:
         model.train_X,
         model.train_y,
         epochs = 100,
-        validation_data = (model.validation_X, model.validation_y),
-        callbacks = [
-        tf.keras.callbacks.EarlyStopping(
-        monitor = "val_loss",
-        mode = "min",
-        patience = 20,
-        restore_best_weights = True
-        )]
+        validation_data = (model.validation_X, model.validation_y)
+        # ,callbacks = [
+        # tf.keras.callbacks.EarlyStopping(
+        # monitor = "val_loss",
+        # mode = "min",
+        # patience = 20,
+        # restore_best_weights = True
+        # )]
 
         )
 
@@ -259,6 +269,9 @@ if __name__ == "__main__":
 
 
     trained_model = Train(compiled_model)
+
+    print(trained_model.trained_model.predict(x_test))
+    print(y_test)
 
     print("done training")
 
