@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import math
 import os
+import sklearn
 
 #compression
 import pickle
@@ -52,8 +53,6 @@ class Model:
         #self.compiled = our NN model
         self.compiled = self.compile()
 
-
-
         self.train_X = train_X
         self.train_y = train_y
 
@@ -70,46 +69,77 @@ class Model:
 
 
     def compile(self):
-        """Creates a fully connected sequental NN model where every node has exactly one input and output tensor
 
-        Returns
-        -------
-        Sequential
-            Compiled model
-        """
+        input_layer = tf.keras.Input(shape=(12, 2500))
 
+        x = tf.keras.layers.Conv1D(
+            filters=32, kernel_size=3, strides=2, activation="relu", padding="same"
+        )(input_layer)
+        x = tf.keras.layers.BatchNormalization()(x)
 
-        model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.Flatten(input_shape =(12,2500))) #flattens input of shape (example, 12,2500) for 12 lead, 2500 sample duration
-        model.add(tf.keras.layers.Dense(8,activation = tf.nn.relu)) #regular dense NN layer
-        model.add(tf.keras.layers.Dense(4,activation = tf.nn.relu)) #regular dense NN layer
-        model.add(tf.keras.layers.Dropout(0.5)) #prevent overfitting
-        model.add(tf.keras.layers.Dense(1,activation = tf.nn.relu))
+        x = tf.keras.layers.Conv1D(
+        filters=64, kernel_size=3, strides=2, activation="relu", padding="same"
+        )(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
+        x = tf.keras.layers.Conv1D(
+        filters=128, kernel_size=5, strides=2, activation="relu", padding="same"
+        )(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+
+        x = tf.keras.layers.Conv1D(
+        filters=256, kernel_size=5, strides=2, activation="relu", padding="same"
+        )(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+
+        x = tf.keras.layers.Conv1D(
+        filters=512, kernel_size=7, strides=2, activation="relu", padding="same"
+        )(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+
+        x = tf.keras.layers.Conv1D(
+        filters=1024, kernel_size=7, strides=2, activation="relu", padding="same"
+        )(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+
+        x = tf.keras.layers.Dropout(0.2)(x)
+
+        x = tf.keras.layers.Flatten()(x)
+
+        x = tf.keras.layers.Dense(4096, activation="relu")(x)
+        x = tf.keras.layers.Dropout(0.2)(x)
+
+        x = tf.keras.layers.Dense(
+        2048, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
+        )(x)
+        x = tf.keras.layers.Dropout(0.2)(x)
+
+        x = tf.keras.layers.Dense(
+        1024, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
+        )(x)
+        x = tf.keras.layers.Dropout(0.2)(x)
+        x = tf.keras.layers.Dense(
+        128, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
+        )(x)
+        output_layer = tf.keras.layers.Dense(1, activation="sigmoid")(x)
+
+        model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
         print(model.summary())
 
-        #print(model.output_shape)
 
-        """
-        Using Adam optimizer, mse, and AUC
-
-        What are we trying to minimize??
-
-        Using AUC of the ROC for evaluation metrics, which is a quality measure of a binary classifier
-        Looking to maximize AUC, or area under the curve, or the best classifier
-
-        could also explore models that maximize things such as precision/recall, true positives, true negatives, etc
-        """
+        optimizer = tf.keras.optimizers.Adam(amsgrad=True, learning_rate=0.001)
+        loss = tf.keras.losses.CategoricalCrossentropy()
 
         model.compile(
-        optimizer = tf.keras.optimizers.Adam(learning_rate = 0.001),
-        loss = "binary_crossentropy", #loss metric
-        metrics = [
-        tf.keras.metrics.Accuracy()
-        #tf.keras.metrics.AUC(),
-        #tf.keras.metrics.RootMeanSquaredError()
-        ] #AUC errors atm
-        )
+        optimizer=optimizer,
+        loss=loss,
+        metrics=[
+            tf.keras.metrics.TopKCategoricalAccuracy(k=3),
+            tf.keras.metrics.AUC(),
+            tf.keras.metrics.Precision(),
+            tf.keras.metrics.Recall(),
+            ],
+            )
 
         return model
 
@@ -256,22 +286,25 @@ if __name__ == "__main__":
     labels = pickle.load(in_file)
     in_file.close()
 
-    #print(data)
-    #print(labels)
+    print(data.shape)
+
 
 
     x_train, y_train, x_test, y_test = splitExamples(data,labels, 0.7)
 
 
     compiled_model = Model(x_train, y_train, x_test, y_test)
+    #compiled_CNN = Model(x_train, y_train, x_test, y_test)
 
-    compiled_model.compile()
+    #compiled_model.compile()
+    #compiled_CNN.compile_CNN()
 
 
     trained_model = Train(compiled_model)
+    #trained_CNN = Train(compiled_CNN)
 
-    print(trained_model.trained_model.predict(x_test))
-    print(y_test)
+    # print(trained_model.trained_model.predict(x_test))
+    # print(y_test)
 
     print("done training")
 
