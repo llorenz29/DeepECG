@@ -11,16 +11,31 @@ import bz2
 #timing
 import time
 
+#plotting
 import matplotlib.pyplot as plt
 
 
+def get_runtime(func):
+    """Decorator to get the various runtimes of different functions
+
+        Runs specified input function and times execution time
+    """
+    def time_func(*args,**kwargs):
+        start = time.time()
+        res = func(*args, **kwargs)
+        end = time.time()
+        print(f"The function {func.__name__} took {end-start} seconds to run")
+        return res
+    return time_func
+
+
+
 class Model:
-    """Create a fully connected Neural Network
+    """Create a Convolutional Neural Network with outputs into dense layers
 
     Validation set validates our model performance during training,
     reducing problems such as overfitting
 
-    Not using a CNN because input is condensed into numpy array
 
     May get the warning message:
         'This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use
@@ -43,14 +58,13 @@ class Model:
     Returns
     -------
     Sequential
-        A NN model
+        A CNN model
 
     """
 
     def __init__(self, train_X, train_y, test_X, test_y):
 
-        #Should we normalize?
-        #self.compiled = our NN model
+        #compiled network
         self.compiled = self.compile()
 
         self.train_X = train_X
@@ -69,9 +83,12 @@ class Model:
 
 
     def compile(self):
+        """
 
+        """
         input_layer = tf.keras.Input(shape=(12, 2500))
 
+        #expanding output space
         x = tf.keras.layers.Conv1D(
             filters=32, kernel_size=3, strides=2, activation="relu", padding="same"
         )(input_layer)
@@ -128,13 +145,14 @@ class Model:
 
 
         optimizer = tf.keras.optimizers.Adam(amsgrad=True, learning_rate=0.001)
-        loss = tf.keras.losses.CategoricalCrossentropy()
+        loss = tf.keras.losses.BinaryCrossentropy()
 
+        #compiling model
         model.compile(
         optimizer=optimizer,
         loss=loss,
         metrics=[
-            tf.keras.metrics.TopKCategoricalAccuracy(k=3),
+            tf.keras.metrics.Accuracy(),
             tf.keras.metrics.AUC(),
             tf.keras.metrics.Precision(),
             tf.keras.metrics.Recall(),
@@ -153,10 +171,12 @@ class Train:
     model : Sequential
         A NN model, compiled as specified by the Model class above
 
-    Returns:
+    Stores:
     -------
-    compiled_model : Sequential
-        A trained NN model
+    self.compliled : Sequential
+        compiled CNN model containing build specified in Model class
+    self.trained_model :
+        Trained CNN fit on training data
 
     """
 
@@ -165,30 +185,18 @@ class Train:
         self.compiled = model.compiled
         self.trained_model = self.train_model(self.compiled, self.model)
 
+    @get_runtime #prints runtime to train the model
     def train_model(self, compiled, model):
-        """Trains NN model, returns a
-
-            Returns compiled model
+        """Returns a compiled (trained) model
         """
 
-        #Stop training when a monitored metric has stopped improving beyond 20 epochs
-
-
         #training the model on training data
-        #starting with 50 epochs, if still improving performance will increase
+        #starting with 20 epochs, if still improving performance will increase
         compiled.fit(
-        model.train_X,
-        model.train_y,
-        epochs = 100,
+        x = model.train_X,
+        y = model.train_y,
+        epochs = 30,
         validation_data = (model.validation_X, model.validation_y)
-        # ,callbacks = [
-        # tf.keras.callbacks.EarlyStopping(
-        # monitor = "val_loss",
-        # mode = "min",
-        # patience = 20,
-        # restore_best_weights = True
-        # )]
-
         )
 
         return compiled
@@ -203,13 +211,18 @@ class Evaluate:
         trained_model : keras Model class
             trained model from Train() class
 
-        Returns:
+        Stores:
         --------
-        val_loss : (Type)
-            validation loss???
-        val_rmse :
-
-        val_mae :
+        loss :
+            BinaryCrossentropy
+        accuracy :
+            Accuracy metric
+        auc :
+            Area Under Curve
+        precision :
+            precision preformance metric
+        recall :
+            recall preformance metric
 
     """
 
@@ -217,26 +230,11 @@ class Evaluate:
         self.compiled = compiled
         self.trained_model = trained_model
 
-        self.loss, self.rmse = trained_model.evaluate(compiled.test_X,compiled.test_y)
+        self.loss, self.accuracy, self.auc, self.precision, self.recall  = self.trained_model.trained_model.evaluate(compiled.test_X,compiled.test_y)
 
 
 
-def get_runtime(func):
-    """Decorator to get the various runtimes of different functions
 
-        Runs specified input function and times execution time
-    """
-    def time_func(*args,**kwargs):
-        start = time.time()
-        res = func(*args, **kwargs)
-        end = time.time()
-        print(f"The function {func.__name__} took {end-start} seconds to run")
-        return res
-    return time_func
-
-
-
-@get_runtime
 def splitExamples(data,labels,split_factor):
     """Splits data and labels into separate training / testing arrays
 
@@ -294,19 +292,23 @@ if __name__ == "__main__":
 
 
     compiled_model = Model(x_train, y_train, x_test, y_test)
-    #compiled_CNN = Model(x_train, y_train, x_test, y_test)
 
-    #compiled_model.compile()
-    #compiled_CNN.compile_CNN()
-
-
+    #training takes 30 mins
     trained_model = Train(compiled_model)
-    #trained_CNN = Train(compiled_CNN)
 
     # print(trained_model.trained_model.predict(x_test))
     # print(y_test)
 
     print("done training")
+
+    evaluate_model = Evaluate(compiled_model, trained_model)
+
+    #loss, accuracy, auc, precision, recall = trained_model.trained_model.evaluate(x_test)
+    print(f"Loss : {evaluate_model.loss}")
+    #print(f"Accuracy : {evaluate_model.accuracy}")
+    print(f"Area under the Curve (ROC) : {evaluate_model.auc}")
+    print(f"Precision : {evaluate_model.precision}")
+    print(f"Recall : {evaluate_model.recall}")
 
     #trained_model = trained_model.trained_model
 
