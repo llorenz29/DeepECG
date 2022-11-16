@@ -84,6 +84,68 @@ class Model:
 
     def compile(self):
         """
+        Convolutional layer --> Fully connected layer
+
+        _________________________________________________________________
+        Layer (type)                Output Shape              Param #
+        =================================================================
+        input_1 (InputLayer)        [(None, 12, 2500)]        0
+
+        conv1d (Conv1D)             (None, 6, 32)             240032
+
+        batch_normalization (BatchN  (None, 6, 32)            128
+        ormalization)
+
+        conv1d_1 (Conv1D)           (None, 3, 64)             6208
+
+        batch_normalization_1 (Batc  (None, 3, 64)            256
+        hNormalization)
+
+        conv1d_2 (Conv1D)           (None, 2, 128)            41088
+
+        batch_normalization_2 (Batc  (None, 2, 128)           512
+        hNormalization)
+
+        conv1d_3 (Conv1D)           (None, 1, 256)            164096
+
+        batch_normalization_3 (Batc  (None, 1, 256)           1024
+        hNormalization)
+
+        conv1d_4 (Conv1D)           (None, 1, 512)            918016
+
+        batch_normalization_4 (Batc  (None, 1, 512)           2048
+        hNormalization)
+
+        conv1d_5 (Conv1D)           (None, 1, 1024)           3671040
+
+        batch_normalization_5 (Batc  (None, 1, 1024)          4096
+        hNormalization)
+
+        dropout (Dropout)           (None, 1, 1024)           0
+
+        flatten (Flatten)           (None, 1024)              0
+
+        dense (Dense)               (None, 4096)              4198400
+
+        dropout_1 (Dropout)         (None, 4096)              0
+
+        dense_1 (Dense)             (None, 2048)              8390656
+
+        dropout_2 (Dropout)         (None, 2048)              0
+
+        dense_2 (Dense)             (None, 1024)              2098176
+
+        dropout_3 (Dropout)         (None, 1024)              0
+
+        dense_3 (Dense)             (None, 128)               131200
+
+        dense_4 (Dense)             (None, 1)                 129
+
+        =================================================================
+        Total params: 19,867,105
+        Trainable params: 19,863,073
+        Non-trainable params: 4,032
+        _________________________________________________________________
 
         """
         input_layer = tf.keras.Input(shape=(12, 2500))
@@ -183,7 +245,7 @@ class Train:
     def __init__(self,model):
         self.model = model
         self.compiled = model.compiled
-        self.trained_model = self.train_model(self.compiled, self.model)
+        self.trained_model, self.history = self.train_model(self.compiled, self.model)
 
     @get_runtime #prints runtime to train the model
     def train_model(self, compiled, model):
@@ -192,14 +254,14 @@ class Train:
 
         #training the model on training data
         #starting with 20 epochs, if still improving performance will increase
-        compiled.fit(
+        self.history = compiled.fit(
         x = model.train_X,
         y = model.train_y,
-        epochs = 30,
+        epochs = 10,
         validation_data = (model.validation_X, model.validation_y)
         )
 
-        return compiled
+        return compiled, history
 
 class Evaluate:
     """Evaluates model performance on our testing data
@@ -310,7 +372,9 @@ if __name__ == "__main__":
     print(f"Precision : {evaluate_model.precision}")
     print(f"Recall : {evaluate_model.recall}")
 
-    #trained_model = trained_model.trained_model
-
-    #evaluate = Evaluate(compiled_model,trained_model)
-    #print(evaluate)
+    loss, accuracy, auc, precision, recall = trained_model.trained_model.evaluate(x_test,y_test)
+    print(f"Loss : {loss}")
+    print(f"Top 3 Categorical Accuracy : {accuracy}")
+    print(f"Area under the Curve (ROC) : {auc}")
+    print(f"Precision : {precision}")
+    print(f"Recall : {recall}")
