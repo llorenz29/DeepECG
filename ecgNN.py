@@ -4,6 +4,8 @@ import math
 import os
 import sklearn
 
+from tensorflow.python.keras.callbacks import TensorBoard
+
 #compression
 import pickle
 import bz2
@@ -13,6 +15,8 @@ import time
 
 #plotting
 import matplotlib.pyplot as plt
+
+import keras_tuner
 
 
 def get_runtime(func):
@@ -66,12 +70,11 @@ class Model:
 
         #compiled network
         self.compiled = self.compile()
+        #self.tb = TensorBoard(log_dir = "logs/{}".format(time.time()))
 
         self.train_X = train_X
         self.train_y = train_y
 
-        self.test_X = test_X
-        self.test_y = test_y
 
         #taking 50% of testing for a split of 70 training 15 validation 15 testing
         self.validation_X = test_X[( (len(test_X)//2) ):]
@@ -206,20 +209,23 @@ class Model:
         print(model.summary())
 
 
+
         optimizer = tf.keras.optimizers.Adam(amsgrad=True, learning_rate=0.001)
         loss = tf.keras.losses.BinaryCrossentropy()
+
 
         #compiling model
         model.compile(
         optimizer=optimizer,
         loss=loss,
         metrics=[
-            tf.keras.metrics.Accuracy(),
+            tf.keras.metrics.BinaryAccuracy(),
             tf.keras.metrics.AUC(),
             tf.keras.metrics.Precision(),
             tf.keras.metrics.Recall(),
             ],
             )
+
 
         return model
 
@@ -245,7 +251,7 @@ class Train:
     def __init__(self,model):
         self.model = model
         self.compiled = model.compiled
-        self.trained_model, self.history = self.train_model(self.compiled, self.model)
+        self.trained_model = self.train_model(self.compiled, self.model)
 
     @get_runtime #prints runtime to train the model
     def train_model(self, compiled, model):
@@ -254,14 +260,21 @@ class Train:
 
         #training the model on training data
         #starting with 20 epochs, if still improving performance will increase
-        self.history = compiled.fit(
+        compiled.fit(
         x = model.train_X,
         y = model.train_y,
         epochs = 10,
         validation_data = (model.validation_X, model.validation_y)
+        #,callbacks = [model.tb]
         )
 
-        return compiled, history
+        return compiled
+
+    def save_model(self):
+
+        self.compiled.save("simulation_model")
+
+        pass
 
 class Evaluate:
     """Evaluates model performance on our testing data
@@ -338,11 +351,11 @@ def splitExamples(data,labels,split_factor):
 if __name__ == "__main__":
 
     #loading data and labels
-    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data.bz2",'rb')
+    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data_small.bz2",'rb')
     data = pickle.load(in_file)
     in_file.close()
 
-    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_labels.bz2",'rb')
+    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_labels_small.bz2",'rb')
     labels = pickle.load(in_file)
     in_file.close()
 
@@ -355,15 +368,35 @@ if __name__ == "__main__":
 
     compiled_model = Model(x_train, y_train, x_test, y_test)
 
+    #Hyperparam tuning
+    # tuner = keras_tuner.RandomSearch(
+    # compiled_model.compiled,
+    # objective='BinaryCrossentropy',
+    # max_trials=5)
+    #
+    # print("created tuner")
+    # tuner.search(compiled_model.train_X, compiled_model.train_y, epochs=10, validation_data=(compiled_model.validation_X, compiled_model.validation_y))
+    # best_model = tuner.get_best_models()[0]
+    #
+    # compiled_model.compiled = best_model
+
     #training takes 30 mins
     trained_model = Train(compiled_model)
+
+    trained_model.save_model()
 
     # print(trained_model.trained_model.predict(x_test))
     # print(y_test)
 
     print("done training")
 
+    saved_model = tf.keras.models.load_model('simulation_model')
+    print("loaded")
+    #saved_model.summary()
+    print("evaluating")
     evaluate_model = Evaluate(compiled_model, trained_model)
+
+
 
     #loss, accuracy, auc, precision, recall = trained_model.trained_model.evaluate(x_test)
     print(f"Loss : {evaluate_model.loss}")
@@ -378,3 +411,5 @@ if __name__ == "__main__":
     print(f"Area under the Curve (ROC) : {auc}")
     print(f"Precision : {precision}")
     print(f"Recall : {recall}")
+
+    #trained_model.trained_model.summary()

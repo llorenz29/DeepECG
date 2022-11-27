@@ -17,6 +17,8 @@ import scipy
 
 from neurokit2.signal import signal_distort, signal_resample
 
+from ecgNN import get_runtime
+
 
 def ecg_simulate_multichannel(duration=10, length=None, sampling_rate=1000, noise=0.01, Anoise=0.01, heart_rate=70, method="ecgsyn",
     random_state=None, ti=(-70, -15, 0, 15, 100), ai=(1.2, -5, 30, -7.5, 0.75), bi=(0.25, 0.1, 0.1, 0.1, 0.4), gamma=np.ones((12,5))):
@@ -332,7 +334,7 @@ def _ecg_simulate_multichannel_rrprocess(
     return rrmean + x * ratio  # Return RR
 
 
-
+@get_runtime
 def simulation(normal_N,abnormal_N, save_params = False):
     normal_data = []
     normal_params = []
@@ -390,11 +392,13 @@ def simulation(normal_N,abnormal_N, save_params = False):
 if __name__ == "__main__":
 
     #of Normal and Abnormal examples
-    normal_N = 2000
-    abnormal_N = 1000
+    normal_N = 35000
+    abnormal_N = 30000
     save_params = False
     simulation(normal_N,abnormal_N,save_params)
 
+    print("saved files")
+    
     in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data.bz2",'rb')
     data = pickle.load(in_file)
     in_file.close()
