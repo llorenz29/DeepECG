@@ -2,9 +2,8 @@ import tensorflow as tf
 import numpy as np
 import math
 import os
-import sklearn
+from sklearn.model_selection import train_test_split
 
-from tensorflow.python.keras.callbacks import TensorBoard
 
 #compression
 import pickle
@@ -16,7 +15,7 @@ import time
 #plotting
 import matplotlib.pyplot as plt
 
-import keras_tuner
+#import keras_tuner
 
 
 def get_runtime(func):
@@ -83,9 +82,126 @@ class Model:
         self.validation_y = test_y[( (len(test_y)//2) ):]
         self.test_y = test_y[:( (len(test_y)//2) )]
 
+    def residual_block(self,X, num_filter, kernel_size, down_sample=False):
+        print(f"num_filter: {num_filter}")
+        X_shortcut = X
 
+        if down_sample == False:
+            X = tf.keras.layers.Conv1D(filters=num_filter, kernel_size=kernel_size, strides=1, padding='same')(X)
+        else:
+            X = tf.keras.layers.Conv1D(filters=num_filter, kernel_size=kernel_size, strides=2, padding='same')(X)
+            X_shortcut = tf.keras.layers.Conv1D(filters=num_filter, kernel_size=1, strides=2, padding='same')(X_shortcut)
+            X_shortcut = tf.keras.layers.BatchNormalization(axis=2)(X_shortcut)
+
+        X = tf.keras.layers.BatchNormalization(axis=2)(X)
+        X = tf.keras.layers.ReLU()(X)
+
+        X = tf.keras.layers.Conv1D(filters=num_filter, kernel_size=kernel_size, strides=1, padding='same')(X)
+        X = tf.keras.layers.BatchNormalization(axis=2)(X)
+
+        X = tf.keras.layers.Add()([X, X_shortcut])
+        X = tf.keras.layers.ReLU()(X)
+
+        return X
 
     def compile(self):
+        """
+        Resnet-18 model
+        """
+
+        input_layer = tf.keras.Input(shape=(12,2500))
+        # Conv1
+        x = tf.keras.layers.Conv1D(filters=64, kernel_size=7, strides=2, padding='same')(input_layer)
+        # Conv2_x
+        x = tf.keras.layers.MaxPooling1D(pool_size =3, strides =2, padding ='same')(x)
+        x = self.residual_block(x, num_filter=64, kernel_size=3, down_sample=False)
+        x = self.residual_block(x, num_filter=64, kernel_size=3, down_sample=False)
+        # Conv3_x
+        x = self.residual_block(x, num_filter=128, kernel_size=3, down_sample=True)
+        x = self.residual_block(x, num_filter=128, kernel_size=3, down_sample=False)
+        # Conv4_x
+        x = self.residual_block(x, num_filter=256, kernel_size=3, down_sample=True)
+        x = self.residual_block(x, num_filter=256, kernel_size=3, down_sample=False)
+        # Conv5_x
+        x = self.residual_block(x, num_filter=512, kernel_size=3, down_sample=True)
+        x = self.residual_block(x, num_filter=512, kernel_size=3, down_sample=False)
+        # Classifier
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        output_layer = tf.keras.layers.Dense(1, activation="sigmoid")(x)
+
+        model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
+        print(model.summary())
+
+        #compile
+        model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+              loss=tf.keras.losses.BinaryCrossentropy(),
+              metrics=[tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.AUC()]
+        )
+
+        #tf.keras.utils.vis_utils.plot_model(model, show_shapes=True, show_layer_names=True)
+
+        return model
+
+
+
+
+    def compile3(self):
+
+        """
+        Smaller model, seemingly doing better than large model with small data sets
+
+        """
+        input_layer = tf.keras.Input(shape=(12,2500))
+
+        x = tf.keras.layers.Conv1D(
+            filters=16, kernel_size=3, strides=2, activation="relu", padding="same"
+        )(input_layer)
+        x = tf.keras.layers.BatchNormalization()(x)
+
+        x = tf.keras.layers.Conv1D(
+        filters=32, kernel_size=3, strides=2, activation="relu", padding="same"
+        )(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+
+        x = tf.keras.layers.Conv1D(
+        filters=64, kernel_size=5, strides=2, activation="relu", padding="same"
+        )(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+
+        x = tf.keras.layers.Flatten()(x)
+
+        x = tf.keras.layers.Dense(32)(x)
+        #x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(32, return_sequences=True))(x)
+        x = tf.keras.layers.Dropout(0.2)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Dense(64, activation='relu')(x)
+        x = tf.keras.layers.Dropout(0.2)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        output_layer = tf.keras.layers.Dense(1, activation="sigmoid")(x)
+
+        optimizer = tf.keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        loss = tf.keras.losses.BinaryCrossentropy()
+
+        model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
+        print(model.summary())
+
+
+        #compiling model
+        model.compile(
+        optimizer=optimizer,
+        loss=loss,
+        metrics=[
+            tf.keras.metrics.BinaryAccuracy(),
+            tf.keras.metrics.AUC(),
+            tf.keras.metrics.Precision(),
+            tf.keras.metrics.Recall(),
+            ],
+            )
+
+        return model
+
+    def compile2(self):
         """
         Convolutional layer --> Fully connected layer
 
@@ -151,16 +267,21 @@ class Model:
         _________________________________________________________________
 
         """
-        input_layer = tf.keras.Input(shape=(12, 2500))
+        input_layer = tf.keras.Input(shape=(12,2500))
 
         #expanding output space
         x = tf.keras.layers.Conv1D(
-            filters=32, kernel_size=3, strides=2, activation="relu", padding="same"
+            filters=16, kernel_size=3, strides=2, activation="relu", padding="same"
         )(input_layer)
         x = tf.keras.layers.BatchNormalization()(x)
 
         x = tf.keras.layers.Conv1D(
-        filters=64, kernel_size=3, strides=2, activation="relu", padding="same"
+        filters=32, kernel_size=3, strides=2, activation="relu", padding="same"
+        )(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+
+        x = tf.keras.layers.Conv1D(
+        filters=64, kernel_size=5, strides=2, activation="relu", padding="same"
         )(x)
         x = tf.keras.layers.BatchNormalization()(x)
 
@@ -170,7 +291,7 @@ class Model:
         x = tf.keras.layers.BatchNormalization()(x)
 
         x = tf.keras.layers.Conv1D(
-        filters=256, kernel_size=5, strides=2, activation="relu", padding="same"
+        filters=256, kernel_size=7, strides=2, activation="relu", padding="same"
         )(x)
         x = tf.keras.layers.BatchNormalization()(x)
 
@@ -179,25 +300,20 @@ class Model:
         )(x)
         x = tf.keras.layers.BatchNormalization()(x)
 
-        x = tf.keras.layers.Conv1D(
-        filters=1024, kernel_size=7, strides=2, activation="relu", padding="same"
-        )(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-
         x = tf.keras.layers.Dropout(0.2)(x)
 
         x = tf.keras.layers.Flatten()(x)
 
-        x = tf.keras.layers.Dense(4096, activation="relu")(x)
-        x = tf.keras.layers.Dropout(0.2)(x)
-
-        x = tf.keras.layers.Dense(
-        2048, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
-        )(x)
+        x = tf.keras.layers.Dense(2048, activation="relu")(x)
         x = tf.keras.layers.Dropout(0.2)(x)
 
         x = tf.keras.layers.Dense(
         1024, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
+        )(x)
+        x = tf.keras.layers.Dropout(0.2)(x)
+
+        x = tf.keras.layers.Dense(
+        512, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
         )(x)
         x = tf.keras.layers.Dropout(0.2)(x)
         x = tf.keras.layers.Dense(
@@ -263,7 +379,7 @@ class Train:
         compiled.fit(
         x = model.train_X,
         y = model.train_y,
-        epochs = 10,
+        epochs = 50,
         validation_data = (model.validation_X, model.validation_y)
         #,callbacks = [model.tb]
         )
@@ -305,7 +421,7 @@ class Evaluate:
         self.compiled = compiled
         self.trained_model = trained_model
 
-        self.loss, self.accuracy, self.auc, self.precision, self.recall  = self.trained_model.trained_model.evaluate(compiled.test_X,compiled.test_y)
+        self.loss, self.accuracy, self.auc  = self.trained_model.trained_model.evaluate(compiled.test_X,compiled.test_y)
 
 
 
@@ -351,19 +467,29 @@ def splitExamples(data,labels,split_factor):
 if __name__ == "__main__":
 
     #loading data and labels
-    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data_small.bz2",'rb')
+    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data.bz2",'rb')
     data = pickle.load(in_file)
     in_file.close()
 
-    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_labels_small.bz2",'rb')
+    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_labels.bz2",'rb')
     labels = pickle.load(in_file)
     in_file.close()
 
+
+
     print(data.shape)
+    reshaped = np.transpose(data, axes=[0, 2, 1]) #switching data
+    print(reshaped.shape)
 
+    print(f"example 1: {reshaped[0]}")
+    print(f"example 1 label: {labels[0]}")
 
-
-    x_train, y_train, x_test, y_test = splitExamples(data,labels, 0.7)
+    x_train, y_train, x_test, y_test = splitExamples(data,labels,0.8)
+    print(x_train.shape)
+    print(y_train.shape)
+    print(x_test.shape)
+    print(y_test.shape)
+    #x_train, y_train, x_test, y_test = splitExamples(reshaped,labels, 0.7)
 
 
     compiled_model = Model(x_train, y_train, x_test, y_test)
@@ -390,20 +516,23 @@ if __name__ == "__main__":
 
     print("done training")
 
-    saved_model = tf.keras.models.load_model('simulation_model')
+    #saved_model = tf.keras.models.load_model('simulation_model')
     print("loaded")
     #saved_model.summary()
     print("evaluating")
-    evaluate_model = Evaluate(compiled_model, trained_model)
+    # evaluate_model = Evaluate(compiled_model, trained_model)
+    #
+    #
+    #
+    # #loss, accuracy, auc, precision, recall = trained_model.trained_model.evaluate(x_test)
+    # print(f"Loss : {evaluate_model.loss}")
+    # #print(f"Accuracy : {evaluate_model.accuracy}")
+    # print(f"Area under the Curve (ROC) : {evaluate_model.auc}")
+    # print(f"Precision : {evaluate_model.precision}")
+    # print(f"Recall : {evaluate_model.recall}")
 
-
-
-    #loss, accuracy, auc, precision, recall = trained_model.trained_model.evaluate(x_test)
-    print(f"Loss : {evaluate_model.loss}")
-    #print(f"Accuracy : {evaluate_model.accuracy}")
-    print(f"Area under the Curve (ROC) : {evaluate_model.auc}")
-    print(f"Precision : {evaluate_model.precision}")
-    print(f"Recall : {evaluate_model.recall}")
+    res = trained_model.trained_model.predict(x_test)
+    print(f"res: {res}")
 
     loss, accuracy, auc, precision, recall = trained_model.trained_model.evaluate(x_test,y_test)
     print(f"Loss : {loss}")

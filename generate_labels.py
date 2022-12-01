@@ -392,13 +392,13 @@ def simulation(normal_N,abnormal_N, save_params = False):
 if __name__ == "__main__":
 
     #of Normal and Abnormal examples
-    normal_N = 35000
-    abnormal_N = 30000
+    normal_N = 15000
+    abnormal_N = 15000
     save_params = False
     simulation(normal_N,abnormal_N,save_params)
 
     print("saved files")
-    
+
     in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data.bz2",'rb')
     data = pickle.load(in_file)
     in_file.close()
