@@ -106,7 +106,8 @@ class Model:
 
     def compile(self):
         """
-        Resnet-18 model
+        Resnet-18 model,
+
         """
 
         input_layer = tf.keras.Input(shape=(2500,12))
@@ -380,7 +381,7 @@ class Train:
         compiled.fit(
         x = model.train_X,
         y = model.train_y,
-        epochs = 25,
+        epochs = 40,
         validation_data = (model.validation_X, model.validation_y)
         #,callbacks = [model.tb]
         )
@@ -517,7 +518,7 @@ if __name__ == "__main__":
     trained_model = Train(compiled_model)
 
     trained_model.save_model()
-
+    
     # print(trained_model.trained_model.predict(x_test))
     # print(y_test)
 
@@ -543,9 +544,7 @@ if __name__ == "__main__":
 
     loss, accuracy, auc = trained_model.trained_model.evaluate(x_test,y_test)
     print(f"Loss : {loss}")
-    print(f"Top 3 Categorical Accuracy : {accuracy}")
+    print(f"Binary Accuracy : {accuracy}")
     print(f"Area under the Curve (ROC) : {auc}")
-    print(f"Precision : {precision}")
-    print(f"Recall : {recall}")
 
     #trained_model.trained_model.summary()
