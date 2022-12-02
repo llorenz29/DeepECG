@@ -109,7 +109,7 @@ class Model:
         Resnet-18 model
         """
 
-        input_layer = tf.keras.Input(shape=(12,2500))
+        input_layer = tf.keras.Input(shape=(2500,12))
         # Conv1
         x = tf.keras.layers.Conv1D(filters=64, kernel_size=7, strides=2, padding='same')(input_layer)
         # Conv2_x
@@ -136,7 +136,8 @@ class Model:
         model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
               loss=tf.keras.losses.BinaryCrossentropy(),
-              metrics=[tf.keras.metrics.BinaryAccuracy(), tf.keras.metrics.AUC()]
+              metrics=[tf.keras.metrics.BinaryAccuracy(),
+              tf.keras.metrics.AUC()]
         )
 
         #tf.keras.utils.vis_utils.plot_model(model, show_shapes=True, show_layer_names=True)
@@ -379,7 +380,7 @@ class Train:
         compiled.fit(
         x = model.train_X,
         y = model.train_y,
-        epochs = 50,
+        epochs = 25,
         validation_data = (model.validation_X, model.validation_y)
         #,callbacks = [model.tb]
         )
@@ -466,16 +467,18 @@ def splitExamples(data,labels,split_factor):
 
 if __name__ == "__main__":
 
+
     #loading data and labels
-    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data.bz2",'rb')
-    data = pickle.load(in_file)
-    in_file.close()
+    # in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data.bz2",'rb')
+    # data = pickle.load(in_file)
+    # in_file.close()
+    #
+    # in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_labels.bz2",'rb')
+    # labels = pickle.load(in_file)
+    # in_file.close()
 
-    in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_labels.bz2",'rb')
-    labels = pickle.load(in_file)
-    in_file.close()
-
-
+    data = np.load('sim_ecg_data.npy')
+    labels = np.load('sim_ecg_labels.npy')
 
     print(data.shape)
     reshaped = np.transpose(data, axes=[0, 2, 1]) #switching data
@@ -484,7 +487,11 @@ if __name__ == "__main__":
     print(f"example 1: {reshaped[0]}")
     print(f"example 1 label: {labels[0]}")
 
-    x_train, y_train, x_test, y_test = splitExamples(data,labels,0.8)
+    idx = np.random.permutation(len(data))
+    data,labels = data[idx], labels[idx]
+
+
+    x_train, y_train, x_test, y_test = splitExamples(reshaped,labels,0.8)
     print(x_train.shape)
     print(y_train.shape)
     print(x_test.shape)
@@ -534,7 +541,7 @@ if __name__ == "__main__":
     res = trained_model.trained_model.predict(x_test)
     print(f"res: {res}")
 
-    loss, accuracy, auc, precision, recall = trained_model.trained_model.evaluate(x_test,y_test)
+    loss, accuracy, auc = trained_model.trained_model.evaluate(x_test,y_test)
     print(f"Loss : {loss}")
     print(f"Top 3 Categorical Accuracy : {accuracy}")
     print(f"Area under the Curve (ROC) : {auc}")
