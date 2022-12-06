@@ -82,6 +82,8 @@ class Model:
         self.validation_y = test_y[( (len(test_y)//2) ):]
         self.test_y = test_y[:( (len(test_y)//2) )]
 
+
+
     def residual_block(self,X, num_filter, kernel_size, down_sample=False):
         print(f"num_filter: {num_filter}")
         X_shortcut = X
@@ -106,7 +108,7 @@ class Model:
 
     def compile(self):
         """
-        Resnet-18 model,
+        Resnet model adaptation
 
         """
 
@@ -135,7 +137,7 @@ class Model:
 
         #compile
         model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
               loss=tf.keras.losses.BinaryCrossentropy(),
               metrics=[tf.keras.metrics.BinaryAccuracy(),
               tf.keras.metrics.AUC()]
@@ -146,206 +148,6 @@ class Model:
         return model
 
 
-
-
-    def compile3(self):
-
-        """
-        Smaller model, seemingly doing better than large model with small data sets
-
-        """
-        input_layer = tf.keras.Input(shape=(12,2500))
-
-        x = tf.keras.layers.Conv1D(
-            filters=16, kernel_size=3, strides=2, activation="relu", padding="same"
-        )(input_layer)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Conv1D(
-        filters=32, kernel_size=3, strides=2, activation="relu", padding="same"
-        )(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Conv1D(
-        filters=64, kernel_size=5, strides=2, activation="relu", padding="same"
-        )(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Flatten()(x)
-
-        x = tf.keras.layers.Dense(32)(x)
-        #x = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(32, return_sequences=True))(x)
-        x = tf.keras.layers.Dropout(0.2)(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-        x = tf.keras.layers.Dense(64, activation='relu')(x)
-        x = tf.keras.layers.Dropout(0.2)(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-        output_layer = tf.keras.layers.Dense(1, activation="sigmoid")(x)
-
-        optimizer = tf.keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
-        loss = tf.keras.losses.BinaryCrossentropy()
-
-        model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
-        print(model.summary())
-
-
-        #compiling model
-        model.compile(
-        optimizer=optimizer,
-        loss=loss,
-        metrics=[
-            tf.keras.metrics.BinaryAccuracy(),
-            tf.keras.metrics.AUC(),
-            tf.keras.metrics.Precision(),
-            tf.keras.metrics.Recall(),
-            ],
-            )
-
-        return model
-
-    def compile2(self):
-        """
-        Convolutional layer --> Fully connected layer
-
-        _________________________________________________________________
-        Layer (type)                Output Shape              Param #
-        =================================================================
-        input_1 (InputLayer)        [(None, 12, 2500)]        0
-
-        conv1d (Conv1D)             (None, 6, 32)             240032
-
-        batch_normalization (BatchN  (None, 6, 32)            128
-        ormalization)
-
-        conv1d_1 (Conv1D)           (None, 3, 64)             6208
-
-        batch_normalization_1 (Batc  (None, 3, 64)            256
-        hNormalization)
-
-        conv1d_2 (Conv1D)           (None, 2, 128)            41088
-
-        batch_normalization_2 (Batc  (None, 2, 128)           512
-        hNormalization)
-
-        conv1d_3 (Conv1D)           (None, 1, 256)            164096
-
-        batch_normalization_3 (Batc  (None, 1, 256)           1024
-        hNormalization)
-
-        conv1d_4 (Conv1D)           (None, 1, 512)            918016
-
-        batch_normalization_4 (Batc  (None, 1, 512)           2048
-        hNormalization)
-
-        conv1d_5 (Conv1D)           (None, 1, 1024)           3671040
-
-        batch_normalization_5 (Batc  (None, 1, 1024)          4096
-        hNormalization)
-
-        dropout (Dropout)           (None, 1, 1024)           0
-
-        flatten (Flatten)           (None, 1024)              0
-
-        dense (Dense)               (None, 4096)              4198400
-
-        dropout_1 (Dropout)         (None, 4096)              0
-
-        dense_1 (Dense)             (None, 2048)              8390656
-
-        dropout_2 (Dropout)         (None, 2048)              0
-
-        dense_2 (Dense)             (None, 1024)              2098176
-
-        dropout_3 (Dropout)         (None, 1024)              0
-
-        dense_3 (Dense)             (None, 128)               131200
-
-        dense_4 (Dense)             (None, 1)                 129
-
-        =================================================================
-        Total params: 19,867,105
-        Trainable params: 19,863,073
-        Non-trainable params: 4,032
-        _________________________________________________________________
-
-        """
-        input_layer = tf.keras.Input(shape=(12,2500))
-
-        #expanding output space
-        x = tf.keras.layers.Conv1D(
-            filters=16, kernel_size=3, strides=2, activation="relu", padding="same"
-        )(input_layer)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Conv1D(
-        filters=32, kernel_size=3, strides=2, activation="relu", padding="same"
-        )(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Conv1D(
-        filters=64, kernel_size=5, strides=2, activation="relu", padding="same"
-        )(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Conv1D(
-        filters=128, kernel_size=5, strides=2, activation="relu", padding="same"
-        )(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Conv1D(
-        filters=256, kernel_size=7, strides=2, activation="relu", padding="same"
-        )(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Conv1D(
-        filters=512, kernel_size=7, strides=2, activation="relu", padding="same"
-        )(x)
-        x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Dropout(0.2)(x)
-
-        x = tf.keras.layers.Flatten()(x)
-
-        x = tf.keras.layers.Dense(2048, activation="relu")(x)
-        x = tf.keras.layers.Dropout(0.2)(x)
-
-        x = tf.keras.layers.Dense(
-        1024, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
-        )(x)
-        x = tf.keras.layers.Dropout(0.2)(x)
-
-        x = tf.keras.layers.Dense(
-        512, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
-        )(x)
-        x = tf.keras.layers.Dropout(0.2)(x)
-        x = tf.keras.layers.Dense(
-        128, activation="relu", kernel_regularizer=tf.keras.regularizers.L2()
-        )(x)
-        output_layer = tf.keras.layers.Dense(1, activation="sigmoid")(x)
-
-        model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
-        print(model.summary())
-
-
-
-        optimizer = tf.keras.optimizers.Adam(amsgrad=True, learning_rate=0.001)
-        loss = tf.keras.losses.BinaryCrossentropy()
-
-
-        #compiling model
-        model.compile(
-        optimizer=optimizer,
-        loss=loss,
-        metrics=[
-            tf.keras.metrics.BinaryAccuracy(),
-            tf.keras.metrics.AUC(),
-            tf.keras.metrics.Precision(),
-            tf.keras.metrics.Recall(),
-            ],
-            )
-
-
-        return model
 
 
 class Train:
@@ -381,9 +183,8 @@ class Train:
         compiled.fit(
         x = model.train_X,
         y = model.train_y,
-        epochs = 40,
+        epochs = 25,
         validation_data = (model.validation_X, model.validation_y)
-        #,callbacks = [model.tb]
         )
 
         return compiled
@@ -464,7 +265,11 @@ def splitExamples(data,labels,split_factor):
 
     return trainx, trainy, testx, testy
 
-
+def preprocess(X):
+    print(f"x shape{X.shape[1]}")
+    m=4096-X.shape[1]
+    y=np.pad(X,[(0,0),(0,m),(0,0)],mode='constant', constant_values=0)
+    return y
 
 if __name__ == "__main__":
 
@@ -481,6 +286,8 @@ if __name__ == "__main__":
     data = np.load('sim_ecg_data.npy')
     labels = np.load('sim_ecg_labels.npy')
 
+
+
     print(data.shape)
     reshaped = np.transpose(data, axes=[0, 2, 1]) #switching data
     print(reshaped.shape)
@@ -493,6 +300,10 @@ if __name__ == "__main__":
 
 
     x_train, y_train, x_test, y_test = splitExamples(reshaped,labels,0.8)
+
+    x_train=preprocess(x_train)
+    x_test=preprocess(x_test)
+
     print(x_train.shape)
     print(y_train.shape)
     print(x_test.shape)
@@ -502,30 +313,18 @@ if __name__ == "__main__":
 
     compiled_model = Model(x_train, y_train, x_test, y_test)
 
-    #Hyperparam tuning
-    # tuner = keras_tuner.RandomSearch(
-    # compiled_model.compiled,
-    # objective='BinaryCrossentropy',
-    # max_trials=5)
-    #
-    # print("created tuner")
-    # tuner.search(compiled_model.train_X, compiled_model.train_y, epochs=10, validation_data=(compiled_model.validation_X, compiled_model.validation_y))
-    # best_model = tuner.get_best_models()[0]
-    #
-    # compiled_model.compiled = best_model
-
     #training takes 30 mins
     trained_model = Train(compiled_model)
 
     trained_model.save_model()
-    
+
     # print(trained_model.trained_model.predict(x_test))
     # print(y_test)
 
     print("done training")
 
     #saved_model = tf.keras.models.load_model('simulation_model')
-    print("loaded")
+    #print("loaded")
     #saved_model.summary()
     print("evaluating")
     # evaluate_model = Evaluate(compiled_model, trained_model)
