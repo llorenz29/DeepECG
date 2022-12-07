@@ -47,8 +47,8 @@ sigma_b_1 = np.abs(mu_b_1/5)
 
 ## Abnormal ECG Parameters
 #heart rate
-mu_hr_2 = 60          # mean of the heart rate
-sigma_hr_2 = 7        # variance of the heart rate
+mu_hr_2 = 90          # mean of the heart rate
+sigma_hr_2 = 10        # variance of the heart rate
 
 #noise
 min_noise_2 = 0.01
@@ -56,7 +56,7 @@ max_noise_2 = 0.1
 
 #t, a, b
 mu_t_2 = np.array((-70, -15, 0, 15, 100))
-mu_a_2 = np.array((1.2, -4, 25, -6.5, 0.75))
+mu_a_2 = np.array((1.2, -4, 12, -3.5, 0.75))
 mu_b_2 = np.array((0.25, 0.1, 0.1, 0.1, 0.4))
 sigma_t_2 = np.ones(5)*3
 sigma_a_2 = np.abs(mu_a_1/5)

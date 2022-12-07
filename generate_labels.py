@@ -378,12 +378,12 @@ def simulation(normal_N,abnormal_N, save_params = False):
 
 
     #compressing the data
-    o_file = "sim_ecg_data.bz2"
+    o_file = "final_data.bz2"
     out = bz2.BZ2File(o_file,'wb') #overwrite
     pickle.dump(data,out)
     out.close()
 
-    o_file = "sim_ecg_labels.bz2"
+    o_file = "final_labels.bz2"
     out = bz2.BZ2File(o_file,'wb') #overwrite
     pickle.dump(labels,out)
     out.close()
@@ -392,8 +392,8 @@ def simulation(normal_N,abnormal_N, save_params = False):
 if __name__ == "__main__":
 
     #of Normal and Abnormal examples
-    normal_N = 7000
-    abnormal_N = 5000
+    normal_N = 7500
+    abnormal_N = 7500
     save_params = False
     simulation(normal_N,abnormal_N,save_params)
 
