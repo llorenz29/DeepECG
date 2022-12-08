@@ -275,16 +275,16 @@ if __name__ == "__main__":
 
 
     #loading data and labels
-    # in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_data.bz2",'rb')
+    # in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/data/sim_ecg_data.bz2",'rb')
     # data = pickle.load(in_file)
     # in_file.close()
     #
-    # in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/sim_ecg_labels.bz2",'rb')
+    # in_file = bz2.BZ2File("/Users/lukelorenz/Desktop/ECGNN/data/sim_ecg_labels.bz2",'rb')
     # labels = pickle.load(in_file)
     # in_file.close()
 
-    data = np.load('sim_ecg_data.npy')
-    labels = np.load('sim_ecg_labels.npy')
+    data = np.load('data/sim_ecg_data.bz2')
+    labels = np.load('data/sim_ecg_labels.bz2')
 
 
 
